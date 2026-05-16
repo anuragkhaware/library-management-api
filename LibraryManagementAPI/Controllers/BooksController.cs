@@ -1,5 +1,6 @@
 using LibraryManagementAPI.DTOs;
 using LibraryManagementAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryManagementAPI.Controllers
@@ -31,6 +32,7 @@ namespace LibraryManagementAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public IActionResult Add([FromBody] BookDto bookDto)
         {
             var book = _service.Add(bookDto);
@@ -38,6 +40,7 @@ namespace LibraryManagementAPI.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public IActionResult Update(int id, [FromBody] BookDto bookDto)
         {
             var book = _service.Update(id, bookDto);
@@ -46,6 +49,7 @@ namespace LibraryManagementAPI.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public IActionResult Delete(int id)
         {
             var result = _service.Delete(id);

@@ -1,48 +1,61 @@
+using Dapper;
 using LibraryManagementAPI.Models;
+using Microsoft.Data.SqlClient;
 
 namespace LibraryManagementAPI.Repositories
 {
     public class BookRepository : IBookRepository
     {
-        private readonly List<Book> _books = new()
+        private readonly string _connectionString;
+
+        public BookRepository(IConfiguration configuration)
         {
-            new Book { Id = 1, Title = "Clean Code", Author = "Robert C. Martin", Genre = "Programming", IsAvailable = true },
-            new Book { Id = 2, Title = "The Pragmatic Programmer", Author = "Andrew Hunt", Genre = "Programming", IsAvailable = true },
-            new Book { Id = 3, Title = "Design Patterns", Author = "Gang of Four", Genre = "Programming", IsAvailable = false }
-        };
+            _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        }
 
-        private int _nextId = 4;
+        private SqlConnection CreateConnection() => new SqlConnection(_connectionString);
 
-        public List<Book> GetAll() => _books;
+        public List<Book> GetAll()
+        {
+            using var connection = CreateConnection();
+            return connection.Query<Book>("SELECT * FROM Books").ToList();
+        }
 
-        public Book? GetById(int id) => _books.FirstOrDefault(b => b.Id == id);
+        public Book? GetById(int id)
+        {
+            using var connection = CreateConnection();
+            return connection.QueryFirstOrDefault<Book>(
+                "SELECT * FROM Books WHERE Id = @Id", new { Id = id });
+        }
 
         public Book Add(Book book)
         {
-            book.Id = _nextId++;
-            _books.Add(book);
+            using var connection = CreateConnection();
+            var sql = @"INSERT INTO Books (Title, Author, Genre, IsAvailable) 
+                        VALUES (@Title, @Author, @Genre, @IsAvailable);
+                        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            book.Id = connection.ExecuteScalar<int>(sql, book);
             return book;
         }
 
         public Book? Update(int id, Book book)
         {
-            var existing = GetById(id);
-            if (existing == null) return null;
-
-            existing.Title = book.Title;
-            existing.Author = book.Author;
-            existing.Genre = book.Genre;
-            existing.IsAvailable = book.IsAvailable;
-            return existing;
+            using var connection = CreateConnection();
+            var sql = @"UPDATE Books 
+                        SET Title = @Title, Author = @Author, 
+                            Genre = @Genre, IsAvailable = @IsAvailable 
+                        WHERE Id = @Id";
+            book.Id = id;
+            var rows = connection.Execute(sql, book);
+            return rows == 0 ? null : book;
         }
 
         public bool Delete(int id)
         {
-            var book = GetById(id);
-            if (book == null) return false;
-
-            _books.Remove(book);
-            return true;
+            using var connection = CreateConnection();
+            var rows = connection.Execute(
+                "DELETE FROM Books WHERE Id = @Id", new { Id = id });
+            return rows > 0;
         }
     }
 }
