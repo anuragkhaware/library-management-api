@@ -56,7 +56,8 @@ if (app.Environment.IsDevelopment())
         options.WithTitle("Library Management API");
         options.Servers = new List<ScalarServer>
         {
-            new("https://localhost:7269", "Local Development")
+            new("https://localhost:7269", "Local Development"),
+            new("http://localhost:5200", "Docker")
         };
         options.WithTheme(ScalarTheme.DeepSpace);
         options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
